@@ -1,4 +1,3 @@
-#include <iostream>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -24,19 +23,30 @@
 const char* MatrixAPath = "./Inputs/matrixA.txt";
 const char* MatrixBPath = "./Inputs/matrixB.txt";
 
-void readMatrix(const char* filename, double* Matrix, size_t X, size_t Y) {
+void readMatrix(const char* filename, double* Matrix, size_t X, size_t Y, int transposed) {
     
-
     FILE* fp;
     char buff[255];
     fp = fopen(filename, "r");  //Openning the file to get MatrixA
 
-    //Filling the matrix with the values
-    for (int y = 0; y < Y; y++) {
+    if (!transposed) {
+        //Filling the matrix with the values
+        for (int y = 0; y < Y; y++) {
+            for (int x = 0; x < X; x++) {
+                fscanf(fp, "%s", buff);
+                *((Matrix + y * Y) + x) = strtod(buff, NULL);
+                //printf("[%d , %d] : %.17g \t",x ,y, *((Matrix + y * Y) + x)); //Debug  https://stackoverflow.com/questions/16839658/printf-width-specifier-to-maintain-precision-of-floating-point-value  
+            }
+        }
+    }
+    else {
+        //Filling the matrix with the values
         for (int x = 0; x < X; x++) {
-            fscanf(fp, "%s", buff);
-            *((Matrix + y * Y) + x) = strtod(buff, NULL);
-            //printf("[%d , %d] : %.17g \t",x ,y, *((Matrix + y * Y) + x)); //Debug  https://stackoverflow.com/questions/16839658/printf-width-specifier-to-maintain-precision-of-floating-point-value  
+            for (int y = 0; y < Y; y++) {
+                fscanf(fp, "%s", buff);
+                *((Matrix + y * Y) + x) = strtod(buff, NULL);
+                //printf("[%d , %d] : %.17g \t",x ,y, *((Matrix + y * Y) + x)); //Debug  https://stackoverflow.com/questions/16839658/printf-width-specifier-to-maintain-precision-of-floating-point-value  
+            }
         }
     }
 }
@@ -59,16 +69,19 @@ int mallocVerification(double* Matrix) { //https://stackoverflow.com/questions/7
     return 1;
 }
 
+void matrixSerialMultiplication(double* MatrixA, double* MatrixB, double* MatrixC, size_t AX, size_t AY, size_t BX, size_t BY){
+
+}
 
 int main()
 {
     size_t AX, AY, BX, BY; //Variables for size.(AX,AY), * (BX,BY)
    
     printf("Write the Matrix A size on the format (X,Y): ");
-    scanf_s("%d %d", &AX, &AY);  //Why does it stop me from using scanf?
+    scanf("%d %d", &AX, &AY);  //Why does it stop me from using scanf?: Because of a now deactivated flag. Deactivaed using: _CRT_SECURE_NO_WARNINGS
 
     printf("Write the Matrix B size on the format (X,Y): ");
-    scanf_s("%d %d", &BX, &BY);
+    scanf("%d %d", &BX, &BY);
 
     if (AX == BY) {
         //Creating the Matrix for A and B
@@ -91,8 +104,11 @@ int main()
         }
 
         //Reading the A and B matrix
-        readMatrix(MatrixAPath, MatrixA, AX, AY); //##Read Matrix A
-        readMatrix(MatrixBPath, MatrixB, BX, BY); //##Read Matrix A
+        readMatrix(MatrixAPath, MatrixA, AX, AY, 0); //##Read Matrix A
+        readMatrix(MatrixBPath, MatrixB, BX, BY, 0); //##Read Matrix B
+
+        //Serial multiplication
+       // matrixSerialMultiplication(MatrixA, MatrixB, MatrixC, AX, AY, BX, BY);
 
         /*Debug matrix printing*/
 
@@ -101,6 +117,10 @@ int main()
         printMatrix(MatrixA, AX, AY);
         printf("\n\tMatrix B[%d][%d]\n", BX, BY);
         printMatrix(MatrixB, BX, BY);
+        
+        
+        //printf("\n\tMatrix C[%d][%d]\n", BX, BY);
+        //printMatrix(MatrixC, AX, BX);
         /*End of debug matrix printing*/
     }
     else {
