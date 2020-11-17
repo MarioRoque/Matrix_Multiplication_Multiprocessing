@@ -2,25 +2,10 @@
 #include <string.h>
 #include <stdlib.h>
 
-/* TODO ( Completed [1/9] ):  
-                            This list is not prioritized but it would be nice to follow the order.
-    [1]-Need to manage the case when im trying to read more than it currently exist on Matrix.txt.
-    [2]-Need to perform serial mutliplication.
-    [3]-Need to perform parallel multiplication 1 five times.
-    [4]-Need to perform parallel multiplication 2 five times.
-    [5]-Need to generate a write to txt function to save matrix C.
-    [6]-Need to add time functions to calculate execution time.
-    [7]-Need to generate a function compare matrixC.txt with Matrix results on serial processing.
-    [8]-Need to add a function that prints a table with the execution time for each run and processing type.
-    [9]-Need to add function descriptive comments.
-    [10]-Need to add a verification to manage when not possible to grant malloc space. [DONE]
-*/
 
-//#define MatrixAPath "./Inputs/matrixA.txt"  //Apparently it doesnt like macros for constants
-//#define MatrixBPath "./Inputs/matrixB.txt"
 #define OUTOFMEMORY -1
 
-const char* MatrixAPath = "./Inputs/matrixA1.txt";
+const char* MatrixAPath = "./Inputs/matrixA.txt";
 const char* MatrixBPath = "./Inputs/matrixB.txt";
 
 void readMatrix(const char* filename, double* Matrix, size_t X, size_t Y, int transposed) {
@@ -35,7 +20,6 @@ void readMatrix(const char* filename, double* Matrix, size_t X, size_t Y, int tr
             for (int x = 0; x < X; x++) {
                 fscanf(fp, "%s", buff);
                 Matrix[x*Y+y] = strtod(buff, NULL);
-                //printf("[%d , %d] : %.17g \t",x ,y, *((Matrix + y * Y) + x)); //Debug  https://stackoverflow.com/questions/16839658/printf-width-specifier-to-maintain-precision-of-floating-point-value  
             }
         }
     }
@@ -45,7 +29,6 @@ void readMatrix(const char* filename, double* Matrix, size_t X, size_t Y, int tr
             for (int y = 0; y < Y; y++) {
                 fscanf(fp, "%s", buff);
                 Matrix[x*Y+y] = strtod(buff, NULL);
-                //printf("[%d , %d] : %.17g \t",x ,y, *((Matrix + y * Y) + x)); //Debug  https://stackoverflow.com/questions/16839658/printf-width-specifier-to-maintain-precision-of-floating-point-value  
             }
         }
     }
@@ -59,7 +42,6 @@ void printMatrix(double* Matrix, size_t X, size_t Y) {
         }
         printf("\n");
     }
-
 }
 
 
@@ -75,15 +57,28 @@ int mallocVerification(double* Matrix) { //https://stackoverflow.com/questions/7
 }
 
 void matrixSerialMultiplication(double* MatrixA, double* MatrixB, double* MatrixC, size_t AX, size_t AY, size_t BX, size_t BY){
-
+    double sum = 0;
+    int i, j, k;
+    //EDIT THIS TO GET A BETTER TIME RESULT AND USE TRANSPOSED MATRIX FOR B
+   	
+       for (i = 0; i < AX; i++){
+		for (j = 0; j < BY; j++){
+			sum = 0;
+			for (k = 0; k < AY; k++) {
+				sum += MatrixA[i * AY + k] * MatrixB[k * BX + j];   
+			} 
+            MatrixC[i * AY + j] = sum;  
+		}
+	}
 }
+
 
 int main()
 {
     size_t AX, AY, BX, BY; //Variables for size.(AX,AY), * (BX,BY)
    
     printf("Write the Matrix A size on the format (X,Y): ");
-    scanf("%d %d", &AX, &AY);  //Why does it stop me from using scanf?: Because of a now deactivated flag. Deactivaed using: _CRT_SECURE_NO_WARNINGS
+    scanf("%d %d", &AX, &AY); 
 
     printf("Write the Matrix B size on the format (X,Y): ");
     scanf("%d %d", &BX, &BY);
@@ -110,7 +105,7 @@ int main()
 
         //Reading the A and B matrix
         readMatrix(MatrixAPath, MatrixA, AX, AY, 0); //##Read Matrix A
-        readMatrix(MatrixBPath, MatrixB, BX, BY, 0); //##Read Matrix B
+        readMatrix(MatrixAPath, MatrixB, BX, BY, 0); //##Read Matrix B
 
         //Serial multiplication
         matrixSerialMultiplication(MatrixA, MatrixB, MatrixC, AX, AY, BX, BY);
@@ -131,6 +126,4 @@ int main()
     else {
         printf("\t Matrix sizes are not compatible (Row != Column) \n");
     }
-
 }
-
