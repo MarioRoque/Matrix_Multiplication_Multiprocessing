@@ -20,7 +20,7 @@
 //#define MatrixBPath "./Inputs/matrixB.txt"
 #define OUTOFMEMORY -1
 
-const char* MatrixAPath = "./Inputs/matrixA.txt";
+const char* MatrixAPath = "./Inputs/matrixA1.txt";
 const char* MatrixBPath = "./Inputs/matrixB.txt";
 
 void readMatrix(const char* filename, double* Matrix, size_t X, size_t Y, int transposed) {
@@ -29,12 +29,12 @@ void readMatrix(const char* filename, double* Matrix, size_t X, size_t Y, int tr
     char buff[255];
     fp = fopen(filename, "r");  //Openning the file to get MatrixA
 
-    if (!transposed) {
+    if (transposed) {
         //Filling the matrix with the values
         for (int y = 0; y < Y; y++) {
             for (int x = 0; x < X; x++) {
                 fscanf(fp, "%s", buff);
-                *((Matrix + y * Y) + x) = strtod(buff, NULL);
+                Matrix[x*Y+y] = strtod(buff, NULL);
                 //printf("[%d , %d] : %.17g \t",x ,y, *((Matrix + y * Y) + x)); //Debug  https://stackoverflow.com/questions/16839658/printf-width-specifier-to-maintain-precision-of-floating-point-value  
             }
         }
@@ -44,7 +44,7 @@ void readMatrix(const char* filename, double* Matrix, size_t X, size_t Y, int tr
         for (int x = 0; x < X; x++) {
             for (int y = 0; y < Y; y++) {
                 fscanf(fp, "%s", buff);
-                *((Matrix + y * Y) + x) = strtod(buff, NULL);
+                Matrix[x*Y+y] = strtod(buff, NULL);
                 //printf("[%d , %d] : %.17g \t",x ,y, *((Matrix + y * Y) + x)); //Debug  https://stackoverflow.com/questions/16839658/printf-width-specifier-to-maintain-precision-of-floating-point-value  
             }
         }
@@ -53,13 +53,18 @@ void readMatrix(const char* filename, double* Matrix, size_t X, size_t Y, int tr
 
 void printMatrix(double* Matrix, size_t X, size_t Y) {
 
-    for (int y = 0; y < Y; y++) {
-        for (int x = 0; x < X; x++) {          
-            printf("[%d , %d] : %.17g \t", x, y, *((Matrix + y * Y) + x));
+    for (int x = 0; x < X; x++) {
+        for (int y = 0; y < Y; y++) {          
+            printf("[%d , %d] : %.17g \t", x, y, Matrix[x*Y+y]);
         }
         printf("\n");
     }
 
+}
+
+
+double obtainMatrixIJValue(double* Matrix,int i, int j, size_t Y){
+    return Matrix[i*Y+j];
 }
 
 int mallocVerification(double* Matrix) { //https://stackoverflow.com/questions/763159/should-i-bother-detecting-oom-out-of-memory-errors-in-my-c-code
@@ -108,7 +113,7 @@ int main()
         readMatrix(MatrixBPath, MatrixB, BX, BY, 0); //##Read Matrix B
 
         //Serial multiplication
-       // matrixSerialMultiplication(MatrixA, MatrixB, MatrixC, AX, AY, BX, BY);
+        matrixSerialMultiplication(MatrixA, MatrixB, MatrixC, AX, AY, BX, BY);
 
         /*Debug matrix printing*/
 
@@ -119,8 +124,8 @@ int main()
         printMatrix(MatrixB, BX, BY);
         
         
-        //printf("\n\tMatrix C[%d][%d]\n", BX, BY);
-        //printMatrix(MatrixC, AX, BX);
+        printf("\n\tMatrix C[%d][%d]\n", BX, BY);
+        printMatrix(MatrixC, AX, BX);
         /*End of debug matrix printing*/
     }
     else {
