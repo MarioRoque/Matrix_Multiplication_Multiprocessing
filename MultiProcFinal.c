@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-
+#include <time.h>
 
 #define OUTOFMEMORY -1
 
@@ -13,11 +13,12 @@ void readMatrix(const char* filename, double* Matrix, size_t X, size_t Y, int tr
     FILE* fp;
     char buff[255];
     fp = fopen(filename, "r");  //Openning the file to get MatrixA
-
+    int x,y;
+    
     if (transposed) {
         //Filling the matrix with the values
-        for (int y = 0; y < Y; y++) {
-            for (int x = 0; x < X; x++) {
+        for (y = 0; y < Y; y++) {
+            for (x = 0; x < X; x++) {
                 fscanf(fp, "%s", buff);
                 Matrix[x*Y+y] = strtod(buff, NULL);
             }
@@ -25,8 +26,8 @@ void readMatrix(const char* filename, double* Matrix, size_t X, size_t Y, int tr
     }
     else {
         //Filling the matrix with the values
-        for (int x = 0; x < X; x++) {
-            for (int y = 0; y < Y; y++) {
+        for (x = 0; x < X; x++) {
+            for (y = 0; y < Y; y++) {
                 fscanf(fp, "%s", buff);
                 Matrix[x*Y+y] = strtod(buff, NULL);
             }
@@ -35,9 +36,9 @@ void readMatrix(const char* filename, double* Matrix, size_t X, size_t Y, int tr
 }
 
 void printMatrix(double* Matrix, size_t X, size_t Y) {
-
-    for (int x = 0; x < X; x++) {
-        for (int y = 0; y < Y; y++) {          
+    int x,y;
+    for (x = 0; x < X; x++) {
+        for (y = 0; y < Y; y++) {          
             printf("[%d , %d] : %.17g \t", x, y, Matrix[x*Y+y]);
         }
         printf("\n");
@@ -76,7 +77,8 @@ void matrixSerialMultiplication(double* MatrixA, double* MatrixB, double* Matrix
 int main()
 {
     size_t AX, AY, BX, BY; //Variables for size.(AX,AY), * (BX,BY)
-   
+    int i;
+    clock_t start, end;
     printf("Write the Matrix A size on the format (X,Y): ");
     scanf("%d %d", &AX, &AY); 
 
@@ -108,19 +110,24 @@ int main()
         readMatrix(MatrixAPath, MatrixB, BX, BY, 0); //##Read Matrix B
 
         //Serial multiplication
-        matrixSerialMultiplication(MatrixA, MatrixB, MatrixC, AX, AY, BX, BY);
-
+        for(i=0; i<5; i++){
+            start = clock();
+                matrixSerialMultiplication(MatrixA, MatrixB, MatrixC, AX, AY, BX, BY);
+            end = clock();
+            printf("Serial Time: %d \n", end-start);
+        }
+           
         /*Debug matrix printing*/
 
         //Printing the matrix
-        printf("\n\tMatrix A [%d][%d]\n", AX,AY);
-        printMatrix(MatrixA, AX, AY);
-        printf("\n\tMatrix B[%d][%d]\n", BX, BY);
-        printMatrix(MatrixB, BX, BY);
+        //printf("\n\tMatrix A [%d][%d]\n", AX,AY);
+        //printMatrix(MatrixA, AX, AY);
+        //printf("\n\tMatrix B[%d][%d]\n", BX, BY);
+        //printMatrix(MatrixB, BX, BY);
         
         
-        printf("\n\tMatrix C[%d][%d]\n", BX, BY);
-        printMatrix(MatrixC, AX, BX);
+        //printf("\n\tMatrix C[%d][%d]\n", BX, BY);
+        //printMatrix(MatrixC, AX, BX);
         /*End of debug matrix printing*/
     }
     else {
