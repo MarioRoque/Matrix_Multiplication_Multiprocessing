@@ -1,129 +1,211 @@
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
-
+#include <string.h>
+#include <time.h>
 
 #define OUTOFMEMORY -1
 
-const char* MatrixAPath = "./Inputs/matrixA.txt";
-const char* MatrixBPath = "./Inputs/matrixB.txt";
+const char *MatrixAPath = "./Inputs/matrixA.txt";
+const char *MatrixBPath = "./Inputs/matrixB.txt";
 
-void readMatrix(const char* filename, double* Matrix, size_t X, size_t Y, int transposed) {
-    
-    FILE* fp;
-    char buff[255];
-    fp = fopen(filename, "r");  //Openning the file to get MatrixA
+// Results for displaying in a table
+struct Results {
+  int serial[5];
+  int paralelo1[5];
+  int paralelo2[5];
+};
 
-    if (transposed) {
-        //Filling the matrix with the values
-        for (int y = 0; y < Y; y++) {
-            for (int x = 0; x < X; x++) {
-                fscanf(fp, "%s", buff);
-                Matrix[x*Y+y] = strtod(buff, NULL);
-            }
-        }
+void readMatrix(const char *filename, double *Matrix, size_t X, size_t Y, int transposed) {
+
+  FILE *fp;
+  char buff[255];
+  fp = fopen(filename, "r"); //Openning the file to get MatrixA
+  int x, y;
+
+  if (transposed) {
+    //Filling the matrix with the values
+    for (y = 0; y < Y; y++) {
+      for (x = 0; x < X; x++) {
+        fscanf(fp, "%s", buff);
+        Matrix[x * Y + y] = strtod(buff, NULL);
+      }
     }
-    else {
-        //Filling the matrix with the values
-        for (int x = 0; x < X; x++) {
-            for (int y = 0; y < Y; y++) {
-                fscanf(fp, "%s", buff);
-                Matrix[x*Y+y] = strtod(buff, NULL);
-            }
-        }
+  } else {
+    //Filling the matrix with the values
+    for (x = 0; x < X; x++) {
+      for (y = 0; y < Y; y++) {
+        fscanf(fp, "%s", buff);
+        Matrix[x * Y + y] = strtod(buff, NULL);
+      }
     }
+  }
 }
 
-void printMatrix(double* Matrix, size_t X, size_t Y) {
+void writeMatrix(double *Matrix, size_t X, size_t Y) {
+  FILE *f = fopen("matrixC.txt", "wb");
+  char buffer[16] = {0};
 
-    for (int x = 0; x < X; x++) {
-        for (int y = 0; y < Y; y++) {          
-            printf("[%d , %d] : %.17g \t", x, y, Matrix[x*Y+y]);
-        }
-        printf("\n");
+  for (int x = 0; x < X; x++) {
+    for (int y = 0; y < Y; y++) {
+      // The precision to be handled in the output is 10 decimal places
+      sprintf(buffer, "%.10g\n", Matrix[x * Y + y]);
+      fputs(buffer, f);
     }
+  }
+
+  fclose(f);
 }
 
-
-double obtainMatrixIJValue(double* Matrix,int i, int j, size_t Y){
-    return Matrix[i*Y+j];
+void printMatrix(double *Matrix, size_t X, size_t Y) {
+  int x, y;
+  for (x = 0; x < X; x++) {
+    for (y = 0; y < Y; y++) {
+      printf("[%d , %d] : %.17g \t", x, y, Matrix[x * Y + y]);
+    }
+    printf("\n");
+  }
 }
 
-int mallocVerification(double* Matrix) { //https://stackoverflow.com/questions/763159/should-i-bother-detecting-oom-out-of-memory-errors-in-my-c-code
-    if (Matrix == NULL) {
-        return 0;
-    }
-    return 1;
+float promedio(int arr[5]) {
+  int i;
+  float sum = 0;
+  float avg = 0.0;
+  for (i = 0; i < 5; i++) {
+    sum = sum + (float)arr[i];
+  }
+  avg = sum / 5.f;
+
+  return avg;
 }
 
-void matrixSerialMultiplication(double* MatrixA, double* MatrixB, double* MatrixC, size_t AX, size_t AY, size_t BX, size_t BY){
-    double sum = 0;
-    int i, j, k;
-    //EDIT THIS TO GET A BETTER TIME RESULT AND USE TRANSPOSED MATRIX FOR B
-   	
-       for (i = 0; i < AX; i++){
-		for (j = 0; j < BY; j++){
-			sum = 0;
-			for (k = 0; k < AY; k++) {
-				sum += MatrixA[i * AY + k] * MatrixB[k * BX + j];   
-			} 
-            MatrixC[i * AY + j] = sum;  
-		}
-	}
+void printTable(struct Results results) {
+  float serialProm = promedio(results.serial);
+  float paralelo1Prom = promedio(results.paralelo1);
+  float paralelo2Prom = promedio(results.paralelo2);
+  printf("------------\n");
+  printf(" Resultados\n");
+  printf("------------\n");
+  printf("%16s%16s%16s%16s\n", "Corrida", "Serial", "Paralelo 1", "Paralelo 2");
+  printf("%16s%16d%16d%16d\n", "1", results.serial[0], results.paralelo1[0], results.paralelo2[0]);
+  printf("%16s%16d%16d%16d\n", "2", results.serial[1], results.paralelo1[1], results.paralelo2[1]);
+  printf("%16s%16d%16d%16d\n", "3", results.serial[2], results.paralelo1[2], results.paralelo2[2]);
+  printf("%16s%16d%16d%16d\n", "4", results.serial[3], results.paralelo1[3], results.paralelo2[3]);
+  printf("%16s%16d%16d%16d\n", "5", results.serial[4], results.paralelo1[4], results.paralelo2[4]);
+  printf("%16s%16.1f%16.1f%16.1f\n", "Promedio", serialProm, paralelo1Prom, paralelo2Prom);
+  printf("%16s%16s%16.2f%16.2f\n", "% vs Serial", "-", paralelo1Prom / serialProm, paralelo2Prom / serialProm);
 }
 
+double obtainMatrixIJValue(double *Matrix, int i, int j, size_t Y) {
+  return Matrix[i * Y + j];
+}
 
-int main()
-{
-    size_t AX, AY, BX, BY; //Variables for size.(AX,AY), * (BX,BY)
-   
-    printf("Write the Matrix A size on the format (X,Y): ");
-    scanf("%d %d", &AX, &AY); 
+int mallocVerification(double *Matrix) { //https://stackoverflow.com/questions/763159/should-i-bother-detecting-oom-out-of-memory-errors-in-my-c-code
+  if (Matrix == NULL) {
+    return 0;
+  }
+  return 1;
+}
 
-    printf("Write the Matrix B size on the format (X,Y): ");
-    scanf("%d %d", &BX, &BY);
+void matrixSerialMultiplication(double *MatrixA, double *MatrixB, double *MatrixC, size_t AX, size_t AY, size_t BX, size_t BY) {
+  double sum = 0;
+  int i, j, k;
 
-    if (AX == BY) {
-        //Creating the Matrix for A and B
-        double* MatrixA = (double*)malloc(AX * AY * sizeof(double));
-        double* MatrixB = (double*)malloc(BX * BY * sizeof(double));
-        double* MatrixC = (double*)malloc(AX * BY * sizeof(double)); //Result size row per column
-
-        //Allocation verification to avoid running out of memory.
-        if (!mallocVerification(MatrixA)){
-            fprintf(stderr, "FIRST OUT OF MEMORY OCURRED WHILE ALOCATING MATRIX: A... \nExiting with code %d", OUTOFMEMORY);
-            exit(OUTOFMEMORY);
-        }
-        if (!mallocVerification(MatrixB)) {
-            fprintf(stderr, "FIRST OUT OF MEMORY OCURRED WHILE ALOCATING MATRIX: B... \nExiting with code %d", OUTOFMEMORY);
-            exit(OUTOFMEMORY);
-        }
-        if (!mallocVerification(MatrixC)) {
-            fprintf(stderr, "FIRST OUT OF MEMORY OCURRED WHILE ALOCATING MATRIX: C... \nExiting with code %d", OUTOFMEMORY);
-            exit(OUTOFMEMORY);
-        }
-
-        //Reading the A and B matrix
-        readMatrix(MatrixAPath, MatrixA, AX, AY, 0); //##Read Matrix A
-        readMatrix(MatrixAPath, MatrixB, BX, BY, 0); //##Read Matrix B
-
-        //Serial multiplication
-        matrixSerialMultiplication(MatrixA, MatrixB, MatrixC, AX, AY, BX, BY);
-
-        /*Debug matrix printing*/
-
-        //Printing the matrix
-        printf("\n\tMatrix A [%d][%d]\n", AX,AY);
-        printMatrix(MatrixA, AX, AY);
-        printf("\n\tMatrix B[%d][%d]\n", BX, BY);
-        printMatrix(MatrixB, BX, BY);
-        
-        
-        printf("\n\tMatrix C[%d][%d]\n", BX, BY);
-        printMatrix(MatrixC, AX, BX);
-        /*End of debug matrix printing*/
+  for (i = 0; i < AX; i++) {
+    for (j = 0; j < BY; j++) {
+      sum = 0;
+      for (k = 0; k < AY; k++) {
+        sum += MatrixA[i * AY + k] * MatrixB[j * BX + k]; //This function works only when transpose flag on B is on
+      }
+      MatrixC[i * AY + j] = sum;
     }
-    else {
-        printf("\t Matrix sizes are not compatible (Row != Column) \n");
+  }
+}
+
+void matrixOMPMultiplication(double *MatrixA, double *MatrixB, double *MatrixC, size_t AX, size_t AY, size_t BX, size_t BY) {
+  double sum = 0;
+  int i, j, k;
+//EDIT THIS TO GET A BETTER TIME RESULT AND USE TRANSPOSED MATRIX FOR B
+#pragma omp parallel for private(i, j, k)
+  for (i = 0; i < AX; i++) {
+    for (j = 0; j < BY; j++) {
+      sum = 0;
+      for (k = 0; k < AY; k++) {
+        sum += MatrixA[i * AY + k] * MatrixB[j * BX + k]; //This function works only when transpose flag on B is on , for no transpose swap j and k on MatrixB
+      }
+      MatrixC[i * AY + j] = sum;
     }
+  }
+}
+
+int main() {
+  int AX, AY, BX, BY; //Variables for size.(AX,AY), * (BX,BY)
+  int i;
+  clock_t start, end;
+  struct Results results;
+  printf("Write the Matrix A size on the format (X,Y): ");
+  scanf("%d %d", &AX, &AY);
+
+  printf("Write the Matrix B size on the format (X,Y): ");
+  scanf("%d %d", &BX, &BY);
+
+  if (AX == BY) {
+    //Creating the Matrix for A and B
+    double *MatrixA = (double *)malloc(AX * AY * sizeof(double));
+    double *MatrixB = (double *)malloc(BX * BY * sizeof(double));
+    double *MatrixC = (double *)malloc(AX * BY * sizeof(double)); //Result size row per column
+
+    //Allocation verification to avoid running out of memory.
+    if (!mallocVerification(MatrixA)) {
+      fprintf(stderr, "FIRST OUT OF MEMORY OCURRED WHILE ALOCATING MATRIX: A... \nExiting with code %d", OUTOFMEMORY);
+      exit(OUTOFMEMORY);
+    }
+    if (!mallocVerification(MatrixB)) {
+      fprintf(stderr, "FIRST OUT OF MEMORY OCURRED WHILE ALOCATING MATRIX: B... \nExiting with code %d", OUTOFMEMORY);
+      exit(OUTOFMEMORY);
+    }
+    if (!mallocVerification(MatrixC)) {
+      fprintf(stderr, "FIRST OUT OF MEMORY OCURRED WHILE ALOCATING MATRIX: C... \nExiting with code %d", OUTOFMEMORY);
+      exit(OUTOFMEMORY);
+    }
+
+    //Reading the A and B matrix
+    readMatrix(MatrixAPath, MatrixA, AX, AY, 0); //##Read Matrix A
+    readMatrix(MatrixAPath, MatrixB, BX, BY, 1); //##Read Matrix B
+
+    //Serial multiplication
+    for (i = 0; i < 5; i++) {
+      start = clock();
+      matrixSerialMultiplication(MatrixA, MatrixB, MatrixC, AX, AY, BX, BY);
+      end = clock();
+      results.serial[i] = end - start; // save results
+    }
+
+    for (i = 0; i < 5; i++) {
+      start = clock();
+      matrixOMPMultiplication(MatrixA, MatrixB, MatrixC, AX, AY, BX, BY);
+      end = clock();
+      results.paralelo1[i] = end - start; // save results
+      results.paralelo2[i] = 0;           // TODO: REMOVE THIS
+    }
+
+    /*Debug matrix printing*/
+
+    //Printing the matrix
+    printf("\n\tMatrix A [%d][%d]\n", AX, AY);
+    printMatrix(MatrixA, AX, AY);
+    printf("\n\tMatrix B[%d][%d]\n", BX, BY);
+    printMatrix(MatrixB, BX, BY);
+
+    printf("\n\tMatrix C[%d][%d]\n", BX, BY);
+    printMatrix(MatrixC, AX, BX);
+    /*End of debug matrix printing*/
+
+    //Write matrix to a file
+    writeMatrix(MatrixC, AX, BX);
+
+    //Print a table of results
+    printTable(results);
+  } else {
+    printf("\t Matrix sizes are not compatible (Row != Column) \n");
+  }
 }
