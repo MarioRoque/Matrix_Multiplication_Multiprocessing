@@ -282,6 +282,10 @@ int main()
             //printMatrix(MatrixCC, AX, BY);
         
         /*End of debug matrix printing*/
+        free(MatrixA);
+        free(MatrixB);
+        free(MatrixC);
+        free(MatrixCC);
 
         //Print a table of results
         printTable(results);
