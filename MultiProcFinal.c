@@ -4,6 +4,7 @@
 #include <time.h>
 
 #define OUTOFMEMORY -1
+#define WRONGMATRIXSIZES -2
 
 const char* MatrixAPath = "./Inputs/matrixA.txt";
 const char* MatrixBPath = "./Inputs/matrixB.txt";
@@ -12,21 +13,20 @@ const char* MatrixCPath = "./Outputs/matrixC.txt";
 ///
 
 struct Results {
-   int serial[5];
-   int paralelo1[5];
-   int paralelo2[5];
+    int serial[5];
+    int paralelo1[5];
+    int paralelo2[5];
 };
 
 
-
-void writeMatrix(double* Matrix, size_t X, size_t Y) {
+void writeMatrix(double* Matrix, int X, int Y) {
     FILE* f = fopen(MatrixCPath, "wb");
     char buffer[255] = { 0 };
 
     for (int x = 0; x < X; x++) {
         for (int y = 0; y < Y; y++) {
             // The precision to be handled in the output is 10 decimal places
-            sprintf(buffer, "%.10g\n", Matrix[x * Y + y]);
+            sprintf(buffer, "%.17g\n", Matrix[x * Y + y]);
             fputs(buffer, f);
         }
     }
@@ -35,7 +35,7 @@ void writeMatrix(double* Matrix, size_t X, size_t Y) {
 }
 
 
-float promedio(int arr[5]) {
+double promedio(int arr[5]) {
     int i;
     double sum = 0;
     double avg = 0.0;
@@ -51,7 +51,7 @@ void printTable(struct Results results) {
     double serialProm = promedio(results.serial);
     double paralelo1Prom = promedio(results.paralelo1);
     double paralelo2Prom = promedio(results.paralelo2);
-    
+
     printf("------------\n");
     printf(" Resultados\n");
     printf("------------\n");
@@ -61,15 +61,29 @@ void printTable(struct Results results) {
     printf("%16s%16d%16d%16d\n", "3", results.serial[2], results.paralelo1[2], results.paralelo2[2]);
     printf("%16s%16d%16d%16d\n", "4", results.serial[3], results.paralelo1[3], results.paralelo2[3]);
     printf("%16s%16d%16d%16d\n", "5", results.serial[4], results.paralelo1[4], results.paralelo2[4]);
-    printf("%16s%.17g%.17g%.17g\n", "Promedio", serialProm, paralelo1Prom, paralelo2Prom);
+    printf("%16s%.17g%.17g%.17g\n", "Promedios: ", serialProm, paralelo1Prom, paralelo2Prom);
     printf("------------\n");
     printf("%16s %.17g %.17g %.17g\n", "% vs Serial ", " - ", paralelo1Prom / serialProm, paralelo2Prom / serialProm);
 }
 
 ///
 
+int getMatrixFileSize(const char* filename) {
+    FILE* fp;
+    char buff[255];
+    int i =0;
 
-void readMatrix(const char* filename, double* Matrix, size_t X, size_t Y, int transposed) {
+    fp = fopen(filename, "r");
+    
+    while (!feof(fp)) {
+        i++;
+        fscanf(fp, "%s", buff);
+    }
+    return i-1;
+}
+
+
+void readMatrix(const char* filename, double* Matrix, int X, int Y, int transposed) {
 
     FILE* fp;
     char buff[255];
@@ -96,7 +110,7 @@ void readMatrix(const char* filename, double* Matrix, size_t X, size_t Y, int tr
     }
 }
 
-void printMatrix(double* Matrix, size_t X, size_t Y) {
+void printMatrix(double* Matrix, int X, int Y) {
     int x, y;
     for (x = 0; x < X; x++) {
         for (y = 0; y < Y; y++) {
@@ -107,7 +121,7 @@ void printMatrix(double* Matrix, size_t X, size_t Y) {
 }
 
 
-double obtainMatrixIJValue(double* Matrix, int i, int j, size_t Y) {
+double obtainMatrixIJValue(double* Matrix, int i, int j, int Y) {
     return Matrix[i * Y + j];
 }
 
@@ -118,10 +132,10 @@ int mallocVerification(double* Matrix) { //https://stackoverflow.com/questions/7
     return 1;
 }
 
-void matrixSerialMultiplication(double* MatrixA, double* MatrixB, double* MatrixC, size_t AX, size_t AY, size_t BX, size_t BY) {
+void matrixSerialMultiplication(double* MatrixA, double* MatrixB, double* MatrixC, int AX, int AY, int BX, int BY) {
     double sum = 0;
     int i, j, k;
-    
+
     for (i = 0; i < AX; i++) {
         for (j = 0; j < BY; j++) {
             sum = 0;
@@ -133,11 +147,11 @@ void matrixSerialMultiplication(double* MatrixA, double* MatrixB, double* Matrix
     }
 }
 
-void matrixOMPMultiplication(double* MatrixA, double* MatrixB, double* MatrixC, size_t AX, size_t AY, size_t BX, size_t BY) {
+void matrixOMPMultiplication(double* MatrixA, double* MatrixB, double* MatrixC, int AX, int AY, int BX, int BY) {
     double sum = 0;
     int i, j, k;
     //EDIT THIS TO GET A BETTER TIME RESULT AND USE TRANSPOSED MATRIX FOR B
-    #pragma omp parallel for private(i,j,k)
+#pragma omp parallel for private(i,j,k)
     for (i = 0; i < AX; i++) {
         for (j = 0; j < BY; j++) {
             sum = 0;
@@ -150,18 +164,50 @@ void matrixOMPMultiplication(double* MatrixA, double* MatrixB, double* MatrixC, 
 }
 
 
+int MatrixIsRight(double* MatrixC, double* MatrixCC, int X, int Y) {
+    for (int x = 0; x < X; x++) {
+        for (int y = 0; y < Y; y++) {
+
+            if (MatrixC[x * Y + y] != MatrixCC[x * Y + y])
+                return 0;
+        }
+    }
+    return 1;
+}
+
+
 int main()
 {
     int AX, AY, BX, BY; //Variables for size.(AX,AY), * (BX,BY)
     int i;
     clock_t start, end;
     struct Results results;
+    int MatrixATotalElements, MatrixBTotalElements;
+
+    MatrixATotalElements = getMatrixFileSize(MatrixAPath);
+    MatrixBTotalElements = getMatrixFileSize(MatrixAPath);
+
+    printf("%d", MatrixATotalElements);
+    printf("%d", MatrixBTotalElements);
 
     printf("Write the Matrix A size on the format (X,Y): ");
     scanf("%d %d", &AX, &AY);
 
+    if (AX * AY != MatrixATotalElements) {
+        printf("Matrix size is diferent to data contained on %s", MatrixAPath);
+        exit(WRONGMATRIXSIZES);
+    }
+
     printf("Write the Matrix B size on the format (X,Y): ");
     scanf("%d %d", &BX, &BY);
+
+
+  
+    if (BX * BY != MatrixBTotalElements) {
+        printf("Matrix size is diferent to data contained on %s", MatrixBPath);
+        exit(WRONGMATRIXSIZES);
+    }
+
 
     if (AX == BY) {
         //Creating the Matrix for A and B
@@ -186,7 +232,7 @@ int main()
 
         //Reading the A and B matrix
         readMatrix(MatrixAPath, MatrixA, AX, AY, 0); //##Read Matrix A
-        readMatrix(MatrixAPath, MatrixB, BX, BY, 1); //##Read Matrix B
+        readMatrix(MatrixAPath, MatrixB, BX, BY, 1); //##Read Matrix B //change to B later.
 
         //Serial multiplication
         for (i = 0; i < 5; i++) {
@@ -208,7 +254,7 @@ int main()
         }
 
         /*Debug matrix printing*/
-
+        
         //Printing the matrix
         //printf("\n\tMatrix A [%d][%d]\n", AX,AY);
         //printMatrix(MatrixA, AX, AY);
@@ -217,16 +263,24 @@ int main()
 
         //printf("\n\tMatrix C[%d][%d]\n", BX, BY);
         //printMatrix(MatrixC, AX, BX);
+
         /*End of debug matrix printing*/
 
 
         //Write matrix to a file
         //writeMatrix(MatrixC, AX, BX);
 
-        readMatrix(MatrixCPath, MatrixCC, AX, AY, 0); //##Read Matrix A
-        printMatrix(MatrixC, AX, BX);
-        printf("\n");
-        printMatrix(MatrixCC, AX, BX);
+        //readMatrix(MatrixCPath, MatrixCC, AX, AY, 0); //##Read Matrix A
+        //printMatrix(MatrixC, AX, BX);
+        //printf("\n");
+        //printMatrix(MatrixCC, AX, BX);
+
+        //if (MatrixIsRight(MatrixC, MatrixCC, AX, AY)) {
+        //    printf("Both Matrix are equal.");
+        //}
+        //else {
+        //    printf("there is an error reading the matrix, or they are not equal.");
+        //}
 
 
         //Print a table of results
