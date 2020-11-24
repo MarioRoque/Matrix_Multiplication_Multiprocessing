@@ -291,7 +291,7 @@ int main()
     }
 
 
-    if (AX == BY) {
+    if (AX == BY || BX == AY) {
         //Creating the Matrix for A and B
         double* MatrixA = (double*) _mm_malloc(AX * AY * sizeof(double), 64);
         double* MatrixB = (double*) _mm_malloc(BX * BY * sizeof(double), 64);
