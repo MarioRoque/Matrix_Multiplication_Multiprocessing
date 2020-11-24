@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <time.h>
+#include <intrin.h>
 
 #define OUTOFMEMORY -1
 #define WRONGMATRIXSIZES -2
@@ -61,12 +62,11 @@ void printTable(struct Results results) {
     printf("%16s%16d%16d%16d\n", "3", results.serial[2], results.paralelo1[2], results.paralelo2[2]);
     printf("%16s%16d%16d%16d\n", "4", results.serial[3], results.paralelo1[3], results.paralelo2[3]);
     printf("%16s%16d%16d%16d\n", "5", results.serial[4], results.paralelo1[4], results.paralelo2[4]);
-    printf("\t%16s \t%.17g \t%.17g \t%.17g\n", "Promedios: ", serialProm, paralelo1Prom, paralelo2Prom);
+    printf("%16s%16.10g%16.10g%16.10g\n", "Promedios: ", serialProm, paralelo1Prom, paralelo2Prom);
     printf("\n-----------------------------------------------------------------------------------\n");
-    printf("%16s %.17g %.17g %.17g\n", "% vs Serial ", " - ", paralelo1Prom / serialProm, paralelo2Prom / serialProm);
+    printf("%16s%16s%16.3g%16.3g\n", "% vs Serial ", " - ", (paralelo1Prom / serialProm), (paralelo2Prom / serialProm));
 }
 
-///
 
 int getMatrixFileSize(const char* filename) {
     FILE* fp;
@@ -125,7 +125,7 @@ double obtainMatrixIJValue(double* Matrix, int i, int j, int Y) {
     return Matrix[i * Y + j];
 }
 
-int mallocVerification(double* Matrix) { //https://stackoverflow.com/questions/763159/should-i-bother-detecting-oom-out-of-memory-errors-in-my-c-code
+int mallocVerification(double* Matrix) { 
     if (Matrix == NULL) {
         return 0;
     }
@@ -150,8 +150,7 @@ void matrixSerialMultiplication(double* MatrixA, double* MatrixB, double* Matrix
 void matrixOMPMultiplication(double* MatrixA, double* MatrixB, double* MatrixC, int AX, int AY, int BX, int BY) {
     double sum = 0;
     int i, j, k;
-    //EDIT THIS TO GET A BETTER TIME RESULT AND USE TRANSPOSED MATRIX FOR B
-#pragma omp parallel for private(i,j,k)
+    #pragma omp parallel for private(i,j,k)
     for (i = 0; i < AX; i++) {
         for (j = 0; j < BY; j++) {
             sum = 0;
@@ -172,7 +171,6 @@ int MatrixIsRight(double* MatrixC, double* MatrixCC, int X, int Y, char name[],i
         for (y = 0; y < Y; y++) {
             delta = MatrixCC[x * Y + y] - MatrixC[x * Y + y];
             if (delta > epsilon) {
-                //printf("%.17g =? %.17g", MatrixCC[x * Y + y], MatrixC[x * Y + y]);
                 printf("\t\tCalculated matrix on: %s is not equal \n", name);
                 return 0;
             }
@@ -183,6 +181,24 @@ int MatrixIsRight(double* MatrixC, double* MatrixCC, int X, int Y, char name[],i
     return 1;
 }
 
+void matrixIntrinsicsMultiplication(double* MatrixA, double* MatrixB, double* MatrixC, int AX, int AY, int BX, int BY) {
+    double sum = 0;
+    int i, j, k;
+    __m128d intrinsicsC, intrinsicsA, intrinsicsB, temporal;
+    for (i = 0; i < AX; i++) {
+        for (j = 0; j < BY; j+=4) {
+            intrinsicsC = _mm_setzero_pd();
+            for (k = 0; k < AY; k++) {
+                intrinsicsA = _mm_set1_pd(MatrixA[i * AY + k]);
+                intrinsicsB = _mm_load_pd((__m128d*) & MatrixB[j * BX + k]);
+                temporal = _mm_mul_pd(intrinsicsA, intrinsicsB);
+                intrinsicsC = _mm_add_pd(intrinsicsC, temporal);
+            }
+            _mm_store_sd(& MatrixC[i * AY + j], intrinsicsC);
+        }
+    }
+}
+ 
 
 int main()
 {
@@ -217,10 +233,11 @@ int main()
 
     if (AX == BY) {
         //Creating the Matrix for A and B
-        double* MatrixA = (double*)malloc(AX * AY * sizeof(double));
-        double* MatrixB = (double*)malloc(BX * BY * sizeof(double));
-        double* MatrixC = (double*)malloc(AX * BY * sizeof(double)); //Result size row per column
-        double* MatrixCC = (double*)malloc(AX * BY * sizeof(double)); //Result size row per column
+        double* MatrixA = (double*) _mm_malloc(AX * AY * sizeof(double), 64);
+        double* MatrixB = (double*) _mm_malloc(BX * BY * sizeof(double), 64);
+        double* MatrixC = (double*) _mm_malloc(AX * BY * sizeof(double),64); //Result size row per column
+        double* MatrixCC = (double*) _mm_malloc(AX * BY * sizeof(double),64); //Result size row per column
+        
 
         //Allocation verification to avoid running out of memory.
         if (!mallocVerification(MatrixA)) {
@@ -245,7 +262,6 @@ int main()
             start = clock();
             matrixSerialMultiplication(MatrixA, MatrixB, MatrixC, AX, AY, BX, BY);
             end = clock();
-            //printf("Serial Time: %d \n", end - start);
             results.serial[i] = end - start; // save results
         }
         writeMatrix(MatrixC, AX, BX);
@@ -258,34 +274,24 @@ int main()
             end = clock();
             //Verify the operation
             MatrixIsRight(MatrixC, MatrixCC, AX, BY, "OpenMP", i+1);
-            
-            //printf("OMP Time: %d \n", end - start);
             results.paralelo1[i] = end - start; // save results
-            results.paralelo2[i] = 0;           // TODO: REMOVE THIS
         }
+
+        for (i = 0; i < 5; i++) {
+            start = clock();
+            matrixIntrinsicsMultiplication(MatrixA, MatrixB, MatrixC, AX, AY, BX, BY);
+            end = clock();
+            //Verify the operation
+            MatrixIsRight(MatrixC, MatrixCC, AX, BY, "Intrinsics ", i + 1);
+            results.paralelo2[i] = end - start; 
+        }
+
         printf("\n");
-        /*Debug matrix printing*/
-        
-            //Printing the matrix
-        
-            //printf("\n\tMatrix A [%d][%d]\n", AX,AY);
-            //printMatrix(MatrixA, AX, AY);
-        
-            //printf("\n\tMatrix B[%d][%d]\n", BX, BY);
-            //printMatrix(MatrixB, BX, BY);
-
-            //printf("\n\tMatrix C[%d][%d]\n", BX, BY);
-            //printMatrix(MatrixC, AX, BX);
-
-            //printMatrix(MatrixC, AX, BY);
-            //printf("\n");
-            //printMatrix(MatrixCC, AX, BY);
-        
-        /*End of debug matrix printing*/
-        free(MatrixA);
-        free(MatrixB);
-        free(MatrixC);
-        free(MatrixCC);
+      
+        _mm_free(MatrixA);
+        _mm_free(MatrixB);
+        _mm_free(MatrixC);
+        _mm_free(MatrixCC);
 
         //Print a table of results
         printTable(results);
