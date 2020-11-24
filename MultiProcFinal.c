@@ -7,19 +7,25 @@
 #define OUTOFMEMORY -1
 #define WRONGMATRIXSIZES -2
 
+//Path declarations
 const char* MatrixAPath = "./Inputs/matrixA.txt";
 const char* MatrixBPath = "./Inputs/matrixB.txt";
 const char* MatrixCPath = "./Outputs/matrixC.txt";
 
 const double epsilon = 0.0000000001; // For error on decimal less than ten spaces.
 
+//Structure that aids with storing the results of each execution clock time on each  algorithm to avoid code repetition and improve readability
 struct Results {
     int serial[5];
     int paralelo1[5];
     int paralelo2[5];
 };
 
-
+/*  
+Function: to write matrixC in an external file
+Arguments: The Matriz and its size values
+Outuput: External file with the MatrixC values that is stored on ./Outputs) 
+*/
 void writeMatrix(double* Matrix, int X, int Y) {
     FILE* f = fopen(MatrixCPath, "wb");
     char buffer[255] = { 0 };
@@ -36,6 +42,12 @@ void writeMatrix(double* Matrix, int X, int Y) {
 }
 
 
+/*  
+Function: to calculate the average time of the five iterations
+Arguments: an array of data (time clocks)
+Outuput: the average result
+*/
+
 double promedio(int arr[5]) {
     int i;
     double sum = 0;
@@ -47,6 +59,12 @@ double promedio(int arr[5]) {
 
     return avg;
 }
+
+/*  
+Function: to write the result table with the time clocks of each method (Seríal, OPENMP and intrinsics), the average time and the % vs serial
+Arguments: An structure with the clock time results
+Outuput: The table printed in console
+*/
 
 void printTable(struct Results results) {
     double serialProm = promedio(results.serial);
@@ -67,6 +85,12 @@ void printTable(struct Results results) {
     printf("%16s%16s%16.3g%16.3g\n", "% vs Serial ", " - ", (paralelo1Prom / serialProm), (paralelo2Prom / serialProm));
 }
 
+/*  
+Function: to get the size of the matrix
+Arguments: A pointer with the filename 
+Outuput: The numer of lines in the file minus 1
+*/
+
 
 int getMatrixFileSize(const char* filename) {
     FILE* fp;
@@ -82,6 +106,11 @@ int getMatrixFileSize(const char* filename) {
     return i-1;
 }
 
+/*  
+Function: to read the data in an external file and stored in a matrix 
+Arguments: A pointer with the filename, a pointer to the MAtrix, the sizes of the Matriz and a flag for transposing
+Outuput: A Matrix stored with the data of the file
+*/
 
 void readMatrix(const char* filename, double* Matrix, int X, int Y, int transposed) {
 
@@ -110,6 +139,12 @@ void readMatrix(const char* filename, double* Matrix, int X, int Y, int transpos
     }
 }
 
+/*  
+Function: to print the Data in the Matrix
+Arguments: A pointer to the Matrix and the size of the Matrix 
+Outuput: Printing the data in the console 
+*/
+
 void printMatrix(double* Matrix, int X, int Y) {
     int x, y;
     for (x = 0; x < X; x++) {
@@ -120,10 +155,12 @@ void printMatrix(double* Matrix, int X, int Y) {
     }
 }
 
+/*  
+Function: to verify is the Matrix is null
+Arguments: A pointer to the Matriz 
+Outuput: 0 is the Matrux is NULL, 1 if it is not. 
+*/
 
-double obtainMatrixIJValue(double* Matrix, int i, int j, int Y) {
-    return Matrix[i * Y + j];
-}
 
 int mallocVerification(double* Matrix) { 
     if (Matrix == NULL) {
@@ -131,6 +168,12 @@ int mallocVerification(double* Matrix) {
     }
     return 1;
 }
+
+/*  
+Function: to mutiply the matrix using serial coding
+Arguments: A pointer to Matrix A, B and C and the size in X and Y of Matrix A and B
+Outuput: The MatrixC with the result of the Multiplication between MatrixA and MatrixB
+*/
 
 void matrixSerialMultiplication(double* MatrixA, double* MatrixB, double* MatrixC, int AX, int AY, int BX, int BY) {
     double sum = 0;
@@ -147,6 +190,12 @@ void matrixSerialMultiplication(double* MatrixA, double* MatrixB, double* Matrix
     }
 }
 
+/*  
+Function: to mutiply the matrix using OMP
+Arguments: A pointer to Matrix A, B and C and the size in X and Y of Matrix A and B
+Outuput: The MatrixC with the result of the Multiplication between MatrixA and MatrixB
+*/
+
 void matrixOMPMultiplication(double* MatrixA, double* MatrixB, double* MatrixC, int AX, int AY, int BX, int BY) {
     double sum = 0;
     int i, j, k;
@@ -162,6 +211,11 @@ void matrixOMPMultiplication(double* MatrixA, double* MatrixB, double* MatrixC, 
     }
 }
 
+/*  
+Function: to compare the values of two given  Matrices 
+Arguments: A pointer to MatrixC and to MatrixCC, the size of the Matrices, an array with the name of the Matrix and the numbe rof iteration 
+Outuput: Return 0 is the matrices are not equal, returns 1 if the matrices are equal on iteration.
+*/
 
 int MatrixIsRight(double* MatrixC, double* MatrixCC, int X, int Y, char name[],int iteration) {
     int x; 
@@ -180,6 +234,12 @@ int MatrixIsRight(double* MatrixC, double* MatrixCC, int X, int Y, char name[],i
 
     return 1;
 }
+
+/*  
+Function: to mutiply the matrix using Intrinsics
+Arguments: A pointer to Matrix A, B and C and the size in X and Y of Matrix A and B
+Outuput: The MatrixC with the result of the Multiplication between MatrixA and MatrixB
+*/
 
 void matrixIntrinsicsMultiplication(double* MatrixA, double* MatrixB, double* MatrixC, int AX, int AY, int BX, int BY) {
     double sum = 0;
@@ -268,6 +328,8 @@ int main()
 
         readMatrix(MatrixCPath, MatrixCC, AX, AY, 0); //##Read Matrix c
 
+        //OMP multiplication
+
         for (i = 0; i < 5; i++) {
             start = clock();
             matrixOMPMultiplication(MatrixA, MatrixB, MatrixC, AX, AY, BX, BY);
@@ -276,6 +338,8 @@ int main()
             MatrixIsRight(MatrixC, MatrixCC, AX, BY, "OpenMP", i+1);
             results.paralelo1[i] = end - start; // save results
         }
+
+        //Intrinsincs multiplication
 
         for (i = 0; i < 5; i++) {
             start = clock();
@@ -287,7 +351,9 @@ int main()
         }
 
         printf("\n");
-      
+
+
+        //Free up  memory
         _mm_free(MatrixA);
         _mm_free(MatrixB);
         _mm_free(MatrixC);
