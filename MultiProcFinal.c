@@ -61,7 +61,7 @@ double promedio(int arr[5]) {
 }
 
 /*
-Function: to write the result table with the time clocks of each method (SerÃ­al, OPENMP and intrinsics), the average time and the % vs serial
+Function: to write the result table with the time clocks of each method (Seríal, OPENMP and intrinsics), the average time and the % vs serial
 Arguments: An structure with the clock time results
 Outuput: The table printed in console
 */
@@ -88,17 +88,17 @@ void printTable(struct Results results) {
     printf("%16s%16s%16.3g%16.3g\n", "% vs Serial ", " - ", paralelo1vsSerial, paralelo2vsSerial);
     
     if (paralelo2vsSerial == 100 && paralelo1vsSerial == 100) {
-        printf("\n There is no improvement with any implementation vs serial.");
+        printf("\n\tThere is no improvement with any implementation vs serial.\n");
     }
 
     if (paralelo2vsSerial == paralelo1vsSerial) {
-        printf("\nThe best multiprocesing is performed by: both OpenMP and Intrinsics");
+        printf("\n\tThe best multiprocesing is performed by: both OpenMP and Intrinsics\n");
     }
     if (paralelo2vsSerial < paralelo1vsSerial) {
-        printf("\nThe best multiprocesing is performed by: Intrinsics");
+        printf("\n\tThe best multiprocesing is performed by: Intrinsics\n");
     }
     else {
-        printf("\nThe best multiprocesing is performed by: OpenMP");
+        printf("\n\tThe best multiprocesing is performed by: OpenMP\n");
 
     }
 
@@ -313,11 +313,13 @@ int main()
     }
 
 
-    if (AX == BY) {
+    if (AY == BX) {
 
         //Creating the Matrix for A and B
         double* MatrixA = (double*)_mm_malloc(AX * AY * sizeof(double), 64);
         double* MatrixB = (double*)_mm_malloc(BX * BY * sizeof(double), 64);
+        double* MatrixBtrans = (double*)_mm_malloc(BX * BY * sizeof(double), 64);
+
         double*  MatrixC = (double*)_mm_malloc(AX * BY * sizeof(double), 64); //Result size row per column
         double* MatrixCC = (double*)_mm_malloc(AX * BY * sizeof(double), 64); //Result size row per column
  
@@ -338,13 +340,23 @@ int main()
 
         //Reading the A and B matrix
         readMatrix(MatrixAPath, MatrixA, AX, AY, 0); //##Read Matrix A
-        readMatrix(MatrixBPath, MatrixB, BX, BY, 1); //##Read Matrix B
+        readMatrix(MatrixBPath, MatrixB, BX, BY, 0); //##Read Matrix B
 
+
+        /// 4r 3c 
+        int j;
+        for (i = 0; i < BX; i++) { //r
+            for (j = 0; j < BY; j++) { //c
+                *(MatrixBtrans + i + BX * j) = *(MatrixB + i * BY + j);
+            }
+        }
+     
+        ////
 
         //Serial multiplication
         for (i = 0; i < 5; i++) {
             start = clock();
-            matrixSerialMultiplication(MatrixA, MatrixB, MatrixC, AX, AY, BX, BY);
+            matrixSerialMultiplication(MatrixA, MatrixBtrans, MatrixC, AX, AY, BX, BY);
             end = clock();
             results.serial[i] = end - start; // save results
         }
@@ -356,7 +368,7 @@ int main()
 
         for (i = 0; i < 5; i++) {
             start = clock();
-            matrixOMPMultiplication(MatrixA, MatrixB, MatrixC, AX, AY, BX, BY);
+            matrixOMPMultiplication(MatrixA, MatrixBtrans, MatrixC, AX, AY, BX, BY);
             end = clock();
             //Verify the operation
             MatrixIsRight(MatrixC, MatrixCC, AX, BY, "OpenMP", i + 1);
@@ -368,7 +380,7 @@ int main()
 
         for (i = 0; i < 5; i++) {
             start = clock();
-            matrixIntrinsicsMultiplication(MatrixA, MatrixB, MatrixC, AX, AY, BX, BY);
+            matrixIntrinsicsMultiplication(MatrixA, MatrixBtrans, MatrixC, AX, AY, BX, BY);
             end = clock();
             //Verify the operation
             MatrixIsRight(MatrixC, MatrixCC, AX, BY, "Intrinsics ", i + 1);
@@ -377,6 +389,16 @@ int main()
 
         printf("\n");
 
+        //printMatrix(MatrixA, AX, AY);
+        //printf("\n");
+        //printMatrix(MatrixB, BX, BY);
+        //printf("\n");
+
+        //printMatrix(MatrixBtrans, BY, BX);
+        //printf("\n");
+
+        printMatrix(MatrixCC, AX, BY); //CHECK
+        printf("\n");
 
         //Free up  memory
         _mm_free(MatrixA);
